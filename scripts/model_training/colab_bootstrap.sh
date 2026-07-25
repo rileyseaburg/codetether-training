@@ -9,15 +9,24 @@ set -euo pipefail
 
 repo=${CODETETHER_HF_REPO:?CODETETHER_HF_REPO is required}
 bundle=${CODETETHER_BUNDLE:-/content/ct}
-output=${CODETETHER_OUTPUT:-$bundle/output}
-log=${CODETETHER_LOG:-$bundle/logs/train.log}
+# Keep state outside the clone so re-cloning cannot destroy a running job.
+state=${CODETETHER_STATE:-/content/codetether-state}
+output=${CODETETHER_OUTPUT:-$state/output}
+log=${CODETETHER_LOG:-$state/logs/train.log}
 resume=${CODETETHER_RESUME:-}
 cli=${CODETETHER_INSTALL_CLI:-0}
 
 : "${VAULT_ADDR:?VAULT_ADDR is required}"
 : "${VAULT_TOKEN:?VAULT_TOKEN is required}"
 
-mkdir -p "$bundle/data" "$output" "$(dirname "$log")"
+mkdir -p "$state/data" "$output" "$(dirname "$log")"
+
+# Refuse to start a second trainer against the same output directory.
+if pgrep -f 'model_training.train' >/dev/null 2>&1; then
+    echo 'a training process is already running; stop it first' >&2
+    pgrep -af 'model_training.train' >&2
+    exit 1
+fi
 
 python3 -m pip install --quiet --upgrade pip
 python3 -m pip install --quiet huggingface_hub
@@ -36,25 +45,26 @@ export HF_HUB_ENABLE_HF_TRANSFER=0
 
 python3 -m model_training.hf_fetch \
     --repo "$repo" \
-    --output "$bundle/data"
+    --output "$state/data"
 
 # Building the Rust CLI takes tens of minutes and is not needed to train,
 # so it is opt-in. Vault reachability is still verified either way.
-setup_args=(--output "$bundle/codetether-setup.json")
+setup_args=(--output "$state/codetether-setup.json")
 if [[ "$cli" != "1" ]]; then
     setup_args+=(--skip-install)
 fi
 python3 -m model_training.codetether_setup "${setup_args[@]}"
 
-python3 -m model_training.gpu_probe | tee "$bundle/logs/gpu-probe.json"
+python3 -m model_training.gpu_probe | tee "$state/logs/gpu-probe.json"
 
-model=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["recommended_model"])' "$bundle/logs/gpu-probe.json")
-python3 -m model_training.disk_guard --path "$bundle" --model "$model" \
-    | tee "$bundle/logs/disk-guard.json"
+probe="$state/logs/gpu-probe.json"
+model=$(python3 -m model_training.read_plan --path "$probe")
+python3 -m model_training.disk_guard --path "$state" --model "$model" \
+    | tee "$state/logs/disk-guard.json"
 
 args=(
-    --train "$bundle/data/train-pairs.jsonl"
-    --validation "$bundle/data/validation-pairs.jsonl"
+    --train "$state/data/train-pairs.jsonl"
+    --validation "$state/data/validation-pairs.jsonl"
     --output "$output"
     --epochs "${CODETETHER_EPOCHS:-1}"
     --masked
@@ -80,3 +90,16 @@ python3 -m model_training.launch_report \
     --pid "$child" \
     --log "$log" \
     --output "$output"
+
+# Mirror checkpoints to Drive when it is mounted, so a lost runtime does not
+# discard hours of training. Runs detached alongside the trainer.
+mirror=${CODETETHER_MIRROR:-/content/drive/MyDrive/codetether-v4}
+if [[ -d "$(dirname "$mirror")" ]]; then
+    mkdir -p "$mirror"
+    setsid nohup bash -c \
+        "while kill -0 $child 2>/dev/null; do \
+            rsync -a --delete '$output/' '$mirror/' 2>/dev/null; \
+            sleep 300; \
+        done" </dev/null >>"$state/logs/mirror.log" 2>&1 &
+    echo "{\"mirror\": \"$mirror\", \"interval_seconds\": 300}"
+fi
