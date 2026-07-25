@@ -28,6 +28,12 @@ export PYTHONPATH="$bundle/scripts"
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 export TOKENIZERS_PARALLELISM=false
 
+# Base-model weights are a ~60 GB anonymous pull otherwise, which the Hub
+# rate-limits. Export the Vault token so downloads are authenticated.
+HF_TOKEN=$(python3 -m model_training.hf_export_token)
+export HF_TOKEN
+export HF_HUB_ENABLE_HF_TRANSFER=0
+
 python3 -m model_training.hf_fetch \
     --repo "$repo" \
     --output "$bundle/data"
@@ -41,6 +47,10 @@ fi
 python3 -m model_training.codetether_setup "${setup_args[@]}"
 
 python3 -m model_training.gpu_probe | tee "$bundle/logs/gpu-probe.json"
+
+model=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["recommended_model"])' "$bundle/logs/gpu-probe.json")
+python3 -m model_training.disk_guard --path "$bundle" --model "$model" \
+    | tee "$bundle/logs/disk-guard.json"
 
 args=(
     --train "$bundle/data/train-pairs.jsonl"

@@ -1,14 +1,20 @@
 """Verify supervision columns are isolated for TRL."""
 
+import importlib.util
 import json
 import tempfile
 import unittest
 
 from pathlib import Path
 
-from model_training.data_loader import splits
+
+HAS_DATASETS = importlib.util.find_spec('datasets') is not None
+
+if HAS_DATASETS:
+    from model_training.data_loader import splits
 
 
+@unittest.skipUnless(HAS_DATASETS, 'datasets is a GPU-runtime dependency')
 class DataLoaderTest(unittest.TestCase):
     """Metadata must not reach the trainer's collator."""
 
