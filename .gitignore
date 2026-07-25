@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Datasets and model weights live in HuggingFace or object storage.
+*.jsonl
+*.gguf
+*.safetensors
+output/
+logs/
+data/
+hf-cache/
+
+# Never commit credentials.
+.env
+*.token
