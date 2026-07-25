@@ -65,5 +65,18 @@ fi
 
 setsid nohup python3 -m model_training.train "${args[@]}" \
     </dev/null >>"$log" 2>&1 &
+child=$!
 
-echo "{\"pid\": $!, \"log\": \"$log\", \"output\": \"$output\"}"
+# Report only a launch that survived startup. A stale PID with no log is
+# indistinguishable from success otherwise.
+sleep 5
+if ! kill -0 "$child" 2>/dev/null; then
+    echo "training exited immediately; last log lines:" >&2
+    tail -20 "$log" >&2 || true
+    exit 1
+fi
+
+python3 -m model_training.launch_report \
+    --pid "$child" \
+    --log "$log" \
+    --output "$output"
