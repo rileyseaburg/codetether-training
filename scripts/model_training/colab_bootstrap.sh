@@ -12,6 +12,7 @@ bundle=${CODETETHER_BUNDLE:-/content/ct}
 output=${CODETETHER_OUTPUT:-$bundle/output}
 log=${CODETETHER_LOG:-$bundle/logs/train.log}
 resume=${CODETETHER_RESUME:-}
+cli=${CODETETHER_INSTALL_CLI:-0}
 
 : "${VAULT_ADDR:?VAULT_ADDR is required}"
 : "${VAULT_TOKEN:?VAULT_TOKEN is required}"
@@ -31,8 +32,13 @@ python3 -m model_training.hf_fetch \
     --repo "$repo" \
     --output "$bundle/data"
 
-python3 -m model_training.codetether_setup \
-    --output "$bundle/codetether-setup.json"
+# Building the Rust CLI takes tens of minutes and is not needed to train,
+# so it is opt-in. Vault reachability is still verified either way.
+setup_args=(--output "$bundle/codetether-setup.json")
+if [[ "$cli" != "1" ]]; then
+    setup_args+=(--skip-install)
+fi
+python3 -m model_training.codetether_setup "${setup_args[@]}"
 
 python3 -m model_training.gpu_probe | tee "$bundle/logs/gpu-probe.json"
 
