@@ -8,7 +8,7 @@ from transformers import (
     BitsAndBytesConfig,
 )
 
-from .constants import BASE_MODEL, BASE_REVISION
+from .model_target import resolve_target
 from .precision import compute_dtype
 
 
@@ -19,6 +19,7 @@ def load() -> tuple[object, object]:
     capability = torch.cuda.get_device_capability()
     if capability < (7, 0):
         raise RuntimeError(f'unsupported CUDA capability: {capability}')
+    model_id, revision = resolve_target()
     dtype = compute_dtype()
     quantization = BitsAndBytesConfig(
         load_in_4bit=True,
@@ -27,17 +28,17 @@ def load() -> tuple[object, object]:
         bnb_4bit_compute_dtype=dtype,
     )
     tokenizer = AutoTokenizer.from_pretrained(
-        BASE_MODEL,
-        revision=BASE_REVISION,
+        model_id,
+        revision=revision,
         use_fast=True,
     )
     tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = 'right'
     model = AutoModelForCausalLM.from_pretrained(
-        BASE_MODEL,
-        revision=BASE_REVISION,
+        model_id,
+        revision=revision,
         quantization_config=quantization,
-        torch_dtype=dtype,
+        dtype=dtype,
         device_map={'': 0},
     )
     model.config.use_cache = False
