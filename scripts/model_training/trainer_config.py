@@ -6,7 +6,7 @@ from pathlib import Path
 
 from trl import SFTConfig
 
-from .constants import SEED
+from .constants import SEED, WARMUP_STEPS
 from .precision import supports_bf16
 from .sequence_length import resolve
 
@@ -23,7 +23,7 @@ def build(output: Path, epochs: float, masked: bool = False) -> SFTConfig:
         gradient_accumulation_steps=16,
         learning_rate=2e-4,
         lr_scheduler_type='cosine',
-        warmup_ratio=0.03,
+        warmup_steps=WARMUP_STEPS,
         weight_decay=0.01,
         fp16=not bf16,
         bf16=bf16,

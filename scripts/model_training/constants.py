@@ -10,6 +10,13 @@ BASE_REVISION = 'b2cff646eb4bb1d68355c01b18ae02e7cf42d120'
 SMALL_MODEL = 'Qwen/Qwen3-4B-Instruct-2507'
 SMALL_REVISION = 'cdbee75f17c01a7cc42f958dc650907174af0554'
 MAX_LENGTH = 8192
+WARMUP_STEPS = 60
+"""Explicit warmup steps.
+
+`warmup_ratio` is deprecated in transformers and removed in v5.2. With
+40,716 examples at an effective batch of 16, one epoch is roughly 2,500
+optimizer steps, so 60 steps approximates the previous 3 percent ratio.
+"""
 SEED = 42
 LORA_RANK = 16
 LORA_ALPHA = 32
