@@ -21,12 +21,17 @@ cli=${CODETETHER_INSTALL_CLI:-0}
 
 mkdir -p "$state/data" "$output" "$(dirname "$log")"
 
-# Refuse to start a second trainer against the same output directory.
-if pgrep -f 'model_training.train' >/dev/null 2>&1; then
-    echo 'a training process is already running; stop it first' >&2
-    pgrep -af 'model_training.train' >&2
-    exit 1
-fi
+# Refuse to start a second trainer, but only when the existing one is
+# healthy. A process whose code directory was deleted keeps running while
+# writing to deleted inodes, so it must not block a relaunch.
+for existing in $(pgrep -f 'model_training.train' 2>/dev/null); do
+    if python3 -m model_training.proc_health --pid "$existing"; then
+        echo "a healthy training process is already running: $existing" >&2
+        exit 1
+    fi
+    echo "reaping wedged trainer $existing (code directory deleted)" >&2
+    kill -9 "$existing" 2>/dev/null || true
+done
 
 # Dependency installation is skippable so path wiring can be verified on a
 # host with an externally managed Python.

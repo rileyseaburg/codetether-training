@@ -10,11 +10,14 @@ def describe(pid: int) -> dict[str, object]:
     root = Path('/proc') / str(pid)
     if not root.exists():
         return {'pid': pid, 'running': False}
+    cwd = _link(root / 'cwd')
     return {
         'pid': pid,
         'running': _alive(pid),
-        'cwd': _link(root / 'cwd'),
-        'deleted_state': _has_deleted_files(root),
+        'cwd': cwd,
+        'deleted_cwd': bool(cwd) and cwd.endswith('(deleted)'),
+        'deleted_state': _has_deleted_files(root)
+        or (bool(cwd) and cwd.endswith('(deleted)')),
         'rss_bytes': _rss(root),
     }
 
