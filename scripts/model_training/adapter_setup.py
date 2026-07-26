@@ -2,8 +2,9 @@
 
 from pathlib import Path
 
-from peft import PeftModel, prepare_model_for_kbit_training
+from peft import PeftModel
 
+from .kbit_prepare import prepare
 from .lora_config import build
 
 
@@ -11,10 +12,7 @@ def configure(
     model: object, adapter: Path | None
 ) -> tuple[object, object | None]:
     """Prepare k-bit layers and optionally attach a trainable adapter."""
-    prepared = prepare_model_for_kbit_training(
-        model,
-        use_gradient_checkpointing=True,
-    )
+    prepared = prepare(model)
     if adapter is None:
         return prepared, build()
     attached = PeftModel.from_pretrained(

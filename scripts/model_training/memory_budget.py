@@ -3,11 +3,15 @@
 A mixture-of-experts model keeps every expert resident under QLoRA, so
 total parameters decide feasibility even when only a few are active.
 
-Measured on an A100 40 GB: Qwen3-Coder-30B-A3B reached 39.47 GiB and hit
-CUDA OOM while loading, against a naive prediction of 16.8 GiB. The model
-stores 18,432 individual expert tensors, and NF4 block scales plus
-non-quantized router and norm parameters cost far more than a flat
-bytes-per-parameter rule implies.
+Two measured runs shaped these constants:
+
+- A100 40 GB: reached 39.47 GiB and hit CUDA OOM while loading weights,
+  against a naive prediction of 16.8 GiB.
+- A100 80 GB: weights loaded, then `prepare_model_for_kbit_training`
+  upcast non-quantized parameters to float32 and reached 78.38 GiB.
+
+The model stores 18,432 expert tensors, so NF4 block scales and per-layer
+routers cost far more than a flat bytes-per-parameter rule implies.
 """
 
 BYTES_PER_4BIT_PARAM = 0.55
