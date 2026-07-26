@@ -19,7 +19,11 @@ TARGET_MODULES = [
     'k_proj',
     'v_proj',
     'o_proj',
-    'gate_proj',
-    'up_proj',
-    'down_proj',
 ]
+"""Attention projections only.
+
+Qwen3-Coder-30B-A3B is a mixture of experts whose `gate_proj`, `up_proj`,
+and `down_proj` modules exist once per expert: 18,432 tensors in total.
+Targeting them multiplies adapter parameters by the expert count and
+exhausts an 80 GB device. Attention layers are shared across experts.
+"""
