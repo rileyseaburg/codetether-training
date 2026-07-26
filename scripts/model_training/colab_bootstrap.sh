@@ -28,10 +28,14 @@ if pgrep -f 'model_training.train' >/dev/null 2>&1; then
     exit 1
 fi
 
-python3 -m pip install --quiet --upgrade pip
-python3 -m pip install --quiet huggingface_hub
-python3 -m pip install --quiet -r \
-    "$bundle/scripts/model_training/requirements-gpu.txt"
+# Dependency installation is skippable so path wiring can be verified on a
+# host with an externally managed Python.
+if [[ "${CODETETHER_SKIP_INSTALL:-0}" != "1" ]]; then
+    python3 -m pip install --quiet --upgrade pip
+    python3 -m pip install --quiet huggingface_hub
+    python3 -m pip install --quiet -r \
+        "$bundle/scripts/model_training/requirements-gpu.txt"
+fi
 
 export PYTHONPATH="$bundle/scripts"
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
