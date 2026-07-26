@@ -22,7 +22,7 @@ surviving train examples, not the 40,716 rendered.
 An A100 40 GB failed the same way earlier at 39.47 GiB, so the cause was
 the upcast rather than insufficient hardware.
 
-## Unresolved: 29.5 percent of train examples dropped
+## Resolved: 29.5 percent of train examples dropped
 
 TRL reported `Dropping fully masked examples` for both splits:
 
@@ -41,20 +41,29 @@ Measured with the pinned tokenizer against the rendered files:
 | Prompt plus completion exceeds the limit | max combined length is 8,175 tokens; 0 of 2,505 pairs exceed 8,192 | rejected |
 | Completions are empty | 0 validation pairs have an empty completion | rejected |
 
-The renderer already enforced a combined-length budget, so truncation is
-not the cause. The mechanism inside TRL that masks these examples is not
-yet identified.
+### Confirmed cause
 
-### Next diagnostic
+The device plan returned `max_length` 4,096 for the 80 GB tier while the
+corpus was rendered at 8,192. Counting prompts against the *training*
+window rather than the render window matches the loss exactly:
 
-Instrument TRL's label-building stage directly and inspect a dropped
-example's `labels` tensor, rather than inferring the cause from token
-counts. The near-equal drop rate across both splits still suggests a
-deterministic rule rather than data corruption.
+```text
+validation pairs 2505   prompt >= 4096: 710 (28.3%)
+TRL dropped:            710
+```
+
+A pair whose prompt alone fills the window retains no completion tokens
+after truncation, so every label is masked and TRL discards the row. The
+earlier hypotheses failed because they measured against 8,192, the length
+the data was rendered at, not 4,096, the length training actually used.
+
+Fixed by deriving the plan's sequence length from the render constant, with
+a regression test asserting agreement for every device tier that can afford
+full-length sequences.
 
 This does not invalidate the current run: the surviving 28,720 examples are
 still 8x the entire v2 corpus, and the drop is unbiased with respect to
-content.
+content. Re-running at 8,192 recovers roughly 12,000 additional examples.
 
 ## Deprecation cleared after this run started
 
