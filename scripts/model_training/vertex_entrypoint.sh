@@ -31,13 +31,17 @@ log=$state/logs/train.log
 exec > >(tee -a "$log") 2>&1
 
 echo "=== stage: dependencies ==="
-# Dependencies are pinned in the requirements file and none of them requires
-# a torch upgrade, so no constraint file is needed. A constraint of
-# `torch==2.4.0+cu124` fails because pip rejects local version identifiers
-# in constraint files, which aborted two runs before any training began.
-pip install -r "$bundle/scripts/model_training/requirements-gpu.txt" 2>&1 |
-    tail -20
-echo "dependency install finished"
+# The custom trainer image already carries transformers 5.x on torch 2.6,
+# which is required for the qwen3_5 architecture. Reinstalling would risk
+# replacing that verified set, so installation is opt-in for prebuilt images
+# that lack the dependencies.
+if [[ "${CODETETHER_INSTALL_DEPS:-0}" == "1" ]]; then
+    pip install -r "$bundle/scripts/model_training/requirements-gpu.txt" 2>&1 |
+        tail -20
+fi
+python3 -m model_training.version_report
+python3 -m model_training.arch_check
+python3 -m model_training.version_gate
 
 # FlashAttention-2 enables padding-free batching, which removes the roughly
 # 59 percent padding waste measured at 8,192 tokens. It compiles against the
@@ -50,11 +54,6 @@ if [[ "${CODETETHER_FLASH_ATTENTION:-0}" == "1" ]]; then
 else
     echo 'flash-attn not requested; using padded sdpa batching'
 fi
-
-python3 -m model_training.version_report
-
-# Refuse to train when any dependency failed to import.
-python3 -m model_training.version_gate
 
 echo "=== stage: dataset ==="
 HF_TOKEN=$(python3 -m model_training.hf_export_token)
