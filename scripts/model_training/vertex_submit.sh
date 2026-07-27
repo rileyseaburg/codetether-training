@@ -15,7 +15,12 @@ project=${CODETETHER_GCP_PROJECT:-$(gcloud config get-value project)}
 region=${CODETETHER_GCP_REGION:-us-central1}
 bucket=${CODETETHER_GCS_BUCKET:?CODETETHER_GCS_BUCKET is required}
 repo=${CODETETHER_HF_REPO:?CODETETHER_HF_REPO is required}
-image=${CODETETHER_TRAIN_IMAGE:?CODETETHER_TRAIN_IMAGE is required}
+
+# Verified to exist on 27 July 2026. The published name carries the Python
+# suffix: `pytorch-gpu.2-4` alone does not exist and a job submitted against
+# it fails with "the image does not exist" after reaching PENDING.
+default_image=us-docker.pkg.dev/vertex-ai/training/pytorch-gpu.2-4.py310:latest
+image=${CODETETHER_TRAIN_IMAGE:-$default_image}
 model=${CODETETHER_BASE_MODEL:-Qwen/Qwen3-Coder-30B-A3B-Instruct}
 
 # Machine follows the model: the 30B needs the 80 GB tier, the 4B does not.
