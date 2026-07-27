@@ -7,6 +7,7 @@ import torch
 
 from trl import SFTTrainer
 
+from .adapter_dtype import align
 from .adapter_setup import configure
 from .behaviour_callback import BehaviourCallback
 from .data_loader import splits
@@ -33,6 +34,9 @@ def main() -> None:
         processing_class=tokenizer,
         peft_config=peft_config,
     )
+    # TRL creates the adapter internally when given a peft_config, so the
+    # dtype alignment must happen after the trainer has wrapped the model.
+    align(trainer.model)
     trainer.add_callback(BehaviourCallback(settings.output, tokenizer))
     baseline = trainer.evaluate()
     checkpoint = str(settings.resume) if settings.resume else None
