@@ -8,6 +8,7 @@ from transformers import (
     BitsAndBytesConfig,
 )
 
+from .attention import implementation
 from .model_target import resolve_target
 from .precision import compute_dtype
 
@@ -40,6 +41,7 @@ def load() -> tuple[object, object]:
         quantization_config=quantization,
         dtype=dtype,
         device_map={'': 0},
+        attn_implementation=implementation(),
     )
     model.config.use_cache = False
     return model, tokenizer

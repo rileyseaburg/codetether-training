@@ -18,12 +18,15 @@ WARMUP_STEPS = 60
 optimizer steps, so 60 steps approximates the previous 3 percent ratio.
 """
 ACCUMULATION_STEPS = 16
-EVAL_STEPS = 500
-"""Evaluation interval in optimizer steps.
+EVAL_STEPS = 100
+"""Evaluation and checkpoint interval in optimizer steps.
 
-A full validation pass over 2,505 examples took 19 minutes on an A100
-80 GB. At a 250 step interval that is 3.2 hours of a 19 hour run spent
-evaluating, so the interval is widened and the subset bounded below.
+`load_best_model_at_end` requires a checkpoint at every evaluation point, so
+this value bounds how much work a preemption can destroy. At a measured
+17.26 s/it, a 500 step interval exposed 2.4 hours of progress on SPOT
+capacity; 100 steps bounds that to roughly 29 minutes. Evaluation stays
+affordable because the validation subset is capped at MAX_EVAL_SAMPLES,
+reducing a pass from about 19 minutes to about 4.
 """
 MAX_EVAL_SAMPLES = 400
 """Cap validation examples per evaluation pass.

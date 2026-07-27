@@ -6,6 +6,7 @@ from pathlib import Path
 
 from trl import SFTConfig
 
+from .attention import flash_available
 from .checkpoint_policy import CHECKPOINTING
 from .constants import (
     ACCUMULATION_STEPS,
@@ -14,6 +15,7 @@ from .constants import (
 )
 from .precision import supports_bf16
 from .sequence_length import resolve
+from .throughput import settings as throughput_settings
 
 
 def build(output: Path, epochs: float, masked: bool = False) -> SFTConfig:
@@ -23,6 +25,7 @@ def build(output: Path, epochs: float, masked: bool = False) -> SFTConfig:
     return SFTConfig(
         output_dir=str(output),
         num_train_epochs=epochs,
+        **throughput_settings(flash_available()),
         per_device_train_batch_size=1,
         per_device_eval_batch_size=1,
         gradient_accumulation_steps=ACCUMULATION_STEPS,

@@ -8,6 +8,7 @@ import torch
 from trl import SFTTrainer
 
 from .adapter_setup import configure
+from .behaviour_callback import BehaviourCallback
 from .data_loader import splits
 from .quantized_model import load
 from .run_manifest import write
@@ -32,6 +33,7 @@ def main() -> None:
         processing_class=tokenizer,
         peft_config=peft_config,
     )
+    trainer.add_callback(BehaviourCallback(settings.output, tokenizer))
     baseline = trainer.evaluate()
     checkpoint = str(settings.resume) if settings.resume else None
     result = trainer.train(resume_from_checkpoint=checkpoint)
