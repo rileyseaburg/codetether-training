@@ -1,41 +1,55 @@
 """Build the worker pool specification for a Vertex custom training job."""
 
+from dataclasses import dataclass
+
+from .vertex_scheduling import spot_scheduling
+
+
 BOOT_DISK_GB = 500
 """The 30B base model is 61 GB, plus checkpoints and a merged export."""
 
+ENTRYPOINT = '/workspace/ct/scripts/model_training/vertex_entrypoint.sh'
 
-def build(
-    image: str,
-    machine: str,
-    accelerator: str,
-    environment: dict[str, str],
-    count: int = 1,
-) -> dict[str, object]:
+
+@dataclass(frozen=True)
+class JobRequest:
+    """Inputs that determine a Vertex worker pool."""
+
+    image: str
+    machine: str
+    accelerator: str
+    environment: dict[str, str]
+    count: int = 1
+    preemptible: bool = False
+
+
+def build(request: JobRequest) -> dict[str, object]:
     """Return a single worker pool running the training entrypoint."""
+    spec: dict[str, object] = {'workerPoolSpecs': [_pool(request)]}
+    if request.preemptible:
+        spec['scheduling'] = spot_scheduling()
+    return spec
+
+
+def _pool(request: JobRequest) -> dict[str, object]:
+    """Return the single worker pool definition."""
     return {
-        'workerPoolSpecs': [
-            {
-                'machineSpec': {
-                    'machineType': machine,
-                    'acceleratorType': accelerator,
-                    'acceleratorCount': count,
-                },
-                'replicaCount': 1,
-                'diskSpec': {
-                    'bootDiskType': 'pd-ssd',
-                    'bootDiskSizeGb': BOOT_DISK_GB,
-                },
-                'containerSpec': {
-                    'imageUri': image,
-                    'command': [
-                        'bash',
-                        '/workspace/ct/scripts/model_training/vertex_entrypoint.sh',
-                    ],
-                    'env': [
-                        {'name': key, 'value': value}
-                        for key, value in sorted(environment.items())
-                    ],
-                },
-            }
-        ]
+        'machineSpec': {
+            'machineType': request.machine,
+            'acceleratorType': request.accelerator,
+            'acceleratorCount': request.count,
+        },
+        'replicaCount': 1,
+        'diskSpec': {
+            'bootDiskType': 'pd-ssd',
+            'bootDiskSizeGb': BOOT_DISK_GB,
+        },
+        'containerSpec': {
+            'imageUri': request.image,
+            'command': ['bash', ENTRYPOINT],
+            'env': [
+                {'name': key, 'value': value}
+                for key, value in sorted(request.environment.items())
+            ],
+        },
     }

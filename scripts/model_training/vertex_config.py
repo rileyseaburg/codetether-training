@@ -10,10 +10,11 @@ import os
 
 from pathlib import Path
 
-from .vertex_spec import build
+from .vertex_spec import JobRequest, build
 
 
 SECRET_VARS = ('VAULT_ADDR', 'VAULT_TOKEN')
+PASSTHROUGH_VARS = ('CODETETHER_BASE_MODEL', 'CODETETHER_MAX_LENGTH')
 
 
 def main() -> None:
@@ -25,17 +26,24 @@ def main() -> None:
     parser.add_argument('--bucket', required=True)
     parser.add_argument('--hf-repo', required=True)
     parser.add_argument('--epochs', default='1')
+    parser.add_argument('--preemptible', action='store_true')
     parser.add_argument('--output', type=Path, required=True)
     values = parser.parse_args()
     environment = {name: os.environ[name] for name in SECRET_VARS}
     environment['CODETETHER_HF_REPO'] = values.hf_repo
     environment['CODETETHER_GCS_BUCKET'] = values.bucket
     environment['CODETETHER_EPOCHS'] = values.epochs
+    for name in PASSTHROUGH_VARS:
+        if os.environ.get(name):
+            environment[name] = os.environ[name]
     spec = build(
-        image=values.image,
-        machine=values.machine,
-        accelerator=values.accelerator,
-        environment=environment,
+        JobRequest(
+            image=values.image,
+            machine=values.machine,
+            accelerator=values.accelerator,
+            environment=environment,
+            preemptible=values.preemptible,
+        )
     )
     values.output.write_text(json.dumps(spec, indent=2, sort_keys=True) + '\n')
     print(json.dumps({'config': str(values.output), 'machine': values.machine}))

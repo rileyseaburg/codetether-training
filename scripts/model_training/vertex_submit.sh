@@ -16,8 +16,13 @@ region=${CODETETHER_GCP_REGION:-us-central1}
 bucket=${CODETETHER_GCS_BUCKET:?CODETETHER_GCS_BUCKET is required}
 repo=${CODETETHER_HF_REPO:?CODETETHER_HF_REPO is required}
 image=${CODETETHER_TRAIN_IMAGE:?CODETETHER_TRAIN_IMAGE is required}
-machine=${CODETETHER_MACHINE:-a2-ultragpu-1g}
-accelerator=${CODETETHER_ACCELERATOR:-NVIDIA_A100_80GB}
+model=${CODETETHER_BASE_MODEL:-Qwen/Qwen3-Coder-30B-A3B-Instruct}
+
+# Machine follows the model: the 30B needs the 80 GB tier, the 4B does not.
+selected=$(python3 -m model_training.vertex_machine_cli --model "$model")
+machine=${CODETETHER_MACHINE:-${selected%% *}}
+accelerator=${CODETETHER_ACCELERATOR:-${selected##* }}
+
 name=${CODETETHER_JOB_NAME:-codetether-qwen3-v4-$(date +%Y%m%d-%H%M%S)}
 
 : "${VAULT_ADDR:?VAULT_ADDR is required}"
@@ -26,12 +31,21 @@ name=${CODETETHER_JOB_NAME:-codetether-qwen3-v4-$(date +%Y%m%d-%H%M%S)}
 config=$(mktemp)
 trap 'rm -f "$config"' EXIT
 
+# Non-preemptible A100 40 GB quota is zero on this project; the available
+# quotas are preemptible A100 (limit 8) and A100 80 GB (limit 8). Default to
+# preemptible because checkpoints stream to Cloud Storage continuously.
+preempt_flag=()
+if [[ "${CODETETHER_PREEMPTIBLE:-1}" == "1" ]]; then
+    preempt_flag=(--preemptible)
+fi
+
 python3 -m model_training.vertex_config \
     --image "$image" \
     --machine "$machine" \
     --accelerator "$accelerator" \
     --bucket "$bucket" \
     --hf-repo "$repo" \
+    "${preempt_flag[@]}" \
     --output "$config"
 
 gcloud ai custom-jobs create \
