@@ -21,7 +21,11 @@ repo=${CODETETHER_HF_REPO:?CODETETHER_HF_REPO is required}
 # it fails with "the image does not exist" after reaching PENDING.
 default_image=us-docker.pkg.dev/vertex-ai/training/pytorch-gpu.2-4.py310:latest
 image=${CODETETHER_TRAIN_IMAGE:-$default_image}
-model=${CODETETHER_BASE_MODEL:-Qwen/Qwen3-Coder-30B-A3B-Instruct}
+
+# Read the default from the pinned constants so the machine tier follows the
+# configured base model instead of a stale literal.
+default_model=$(python3 -m model_training.read_base_model)
+model=${CODETETHER_BASE_MODEL:-$default_model}
 
 # Machine follows the model: the 30B needs the 80 GB tier, the 4B does not.
 selected=$(python3 -m model_training.vertex_machine_cli --model "$model")
