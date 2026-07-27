@@ -31,9 +31,16 @@ log=$state/logs/train.log
 exec > >(tee -a "$log") 2>&1
 
 echo "=== stage: dependencies ==="
-pip install -r "$bundle/scripts/model_training/requirements-gpu.txt" 2>&1 |
-    tail -20
+# The image supplies a CUDA build of torch; never let a dependency replace
+# it with a different version, which breaks the compiled CUDA extensions.
+torch_pin=$(python3 -c 'import torch; print(f"torch=={torch.__version__}")')
+echo "holding $torch_pin"
+pip install --constraint <(echo "$torch_pin") \
+    -r "$bundle/scripts/model_training/requirements-gpu.txt" 2>&1 | tail -20
 python3 -m model_training.version_report
+
+# Refuse to train when any dependency failed to import.
+python3 -m model_training.version_gate
 
 echo "=== stage: dataset ==="
 HF_TOKEN=$(python3 -m model_training.hf_export_token)
