@@ -10,6 +10,7 @@ import os
 
 from pathlib import Path
 
+from .vertex_machine import gpu_count
 from .vertex_spec import JobRequest, build
 
 
@@ -43,6 +44,7 @@ def main() -> None:
             accelerator=values.accelerator,
             environment=environment,
             preemptible=values.preemptible,
+            count=gpu_count(),
         )
     )
     values.output.write_text(json.dumps(spec, indent=2, sort_keys=True) + '\n')
