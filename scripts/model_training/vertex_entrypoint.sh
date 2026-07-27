@@ -37,6 +37,19 @@ torch_pin=$(python3 -c 'import torch; print(f"torch=={torch.__version__}")')
 echo "holding $torch_pin"
 pip install --constraint <(echo "$torch_pin") \
     -r "$bundle/scripts/model_training/requirements-gpu.txt" 2>&1 | tail -20
+
+# FlashAttention-2 enables padding-free batching, which removes the roughly
+# 59 percent padding waste measured at 8,192 tokens. It compiles against the
+# installed torch and that build can exceed thirty minutes, which may cost
+# more than the padding it saves, so it is opt-in. Absence degrades to sdpa
+# with padding rather than failing the run.
+if [[ "${CODETETHER_FLASH_ATTENTION:-0}" == "1" ]]; then
+    pip install --no-build-isolation flash-attn==2.7.4.post1 2>&1 | tail -5 ||
+        echo 'flash-attn build failed; continuing with padded sdpa batching'
+else
+    echo 'flash-attn not requested; using padded sdpa batching'
+fi
+
 python3 -m model_training.version_report
 
 # Refuse to train when any dependency failed to import.
@@ -47,6 +60,15 @@ HF_TOKEN=$(python3 -m model_training.hf_export_token)
 export HF_TOKEN
 python3 -m model_training.hf_fetch \
     --repo "$CODETETHER_HF_REPO" --output "$state/data"
+
+echo "=== stage: length column ==="
+# Published pairs predate the length column that group_by_length requires.
+for split in train validation; do
+    python3 -m model_training.add_length \
+        --pairs "$state/data/$split-pairs.jsonl" \
+        --output "$state/data/$split-len.jsonl"
+    mv "$state/data/$split-len.jsonl" "$state/data/$split-pairs.jsonl"
+done
 
 echo "=== stage: preflight ==="
 python3 -m model_training.gpu_probe | tee "$state/logs/gpu-probe.json"

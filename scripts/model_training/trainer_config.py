@@ -28,6 +28,7 @@ def build(output: Path, epochs: float, masked: bool = False) -> SFTConfig:
         **throughput_settings(flash_available()),
         per_device_train_batch_size=1,
         per_device_eval_batch_size=1,
+        length_column_name='length',
         gradient_accumulation_steps=ACCUMULATION_STEPS,
         group_by_length=True,
         learning_rate=2e-4,
