@@ -3,6 +3,45 @@
 Colab recycles runtimes long before a multi-hour epoch finishes, so the
 full run belongs on a rented persistent box.
 
+## Google Cloud Vertex AI (available now)
+
+Verified against project `spotlessbinco` on 25 July 2026.
+
+The service account holds `roles/aiplatform.admin` but **not** Compute
+Engine permissions, so Vertex AI custom training is the usable path;
+`gcloud compute` calls fail with a missing `compute.regions.get` permission.
+
+Confirmed training quota in `us-central1`:
+
+| Quota | Limit |
+|---|---:|
+| `restricted_image_training_nvidia_a100_80gb_gpus` | 8 |
+| `custom_model_training_preemptible_nvidia_a100_gpus` | 8 |
+
+A100 80 GB is exactly what the measured plan needs (45.4 GB of 80 GB).
+
+Vertex jobs run server-side, so they survive local disconnects completely.
+That removes the whole class of failure that lost the earlier Colab runs.
+
+```bash
+export VAULT_ADDR=https://vault.example.com
+export VAULT_TOKEN=...
+export CODETETHER_HF_REPO=owner/codetether-agent-traces-v4
+export CODETETHER_GCS_BUCKET=your-bucket
+export CODETETHER_TRAIN_IMAGE=us-central1-docker.pkg.dev/PROJECT/REPO/trainer:tag
+
+bash scripts/model_training/vertex_submit.sh
+```
+
+Checkpoints stream to
+`gs://$CODETETHER_GCS_BUCKET/model-training/qwen3-coder-v4/output` every
+five minutes, so a preemption is resumable.
+
+On-demand A100 80 GB on Google Cloud lists around $3.67 per GPU-hour, which
+is higher than the marketplace providers below. Preemptible capacity is
+substantially cheaper and is safe here because checkpoints leave the boot
+disk continuously.
+
 Prices below are per GPU-hour as published by CloudMart on 22 June 2026.
 Verify current rates before renting; GPU pricing moves quickly.
 
