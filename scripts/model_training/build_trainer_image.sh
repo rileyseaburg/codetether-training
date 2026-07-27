@@ -24,6 +24,7 @@ context=$(mktemp -d)
 trap 'rm -rf "$context"' EXIT
 cp "$here/Dockerfile.trainer" "$context/Dockerfile"
 cp "$here/requirements-qwen35.txt" "$context/"
+cp "$here/arch_check.py" "$context/"
 
 gcloud builds submit "$context" \
     --project="$project" \

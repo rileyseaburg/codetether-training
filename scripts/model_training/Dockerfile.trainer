@@ -24,9 +24,7 @@ COPY requirements-qwen35.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
 # Fail the build rather than a training run if the architecture is missing.
-RUN python3 -c "\
-from transformers.models.auto.configuration_auto import CONFIG_MAPPING_NAMES; \
-missing = [n for n in ('qwen3_5', 'qwen3_5_moe') if n not in CONFIG_MAPPING_NAMES]; \
-raise SystemExit(f'missing architectures: {missing}') if missing else None"
+COPY arch_check.py /tmp/arch_check.py
+RUN python3 /tmp/arch_check.py
 
 WORKDIR /workspace
