@@ -7,10 +7,10 @@ import torch
 
 from trl import SFTTrainer
 
-from .adapter_dtype import align
 from .adapter_setup import configure
 from .behaviour_callback import BehaviourCallback
 from .data_loader import splits
+from .dtype_callback import DtypeAlignCallback
 from .quantized_model import load
 from .run_manifest import write
 from .train_args import parse
@@ -34,10 +34,11 @@ def main() -> None:
         processing_class=tokenizer,
         peft_config=peft_config,
     )
-    # TRL creates the adapter internally when given a peft_config, so the
-    # dtype alignment must happen after the trainer has wrapped the model.
-    align(trainer.model)
     trainer.add_callback(BehaviourCallback(settings.output, tokenizer))
+    # TRL may rebuild the adapter during setup, so alignment runs again on
+    # every train begin. A float32 adapter over bfloat16 base weights raised
+    # `RuntimeError: expected scalar type BFloat16 but found Float`.
+    trainer.add_callback(DtypeAlignCallback())
     baseline = trainer.evaluate()
     checkpoint = str(settings.resume) if settings.resume else None
     result = trainer.train(resume_from_checkpoint=checkpoint)
