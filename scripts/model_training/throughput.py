@@ -23,6 +23,13 @@ def settings(flash_attention: bool) -> dict[str, object]:
 
     Padding-free batching is only correct with FlashAttention-2; requesting
     it without that kernel silently degrades or errors, so it is gated.
+
+    `group_by_length` is deliberately absent. Enabling it required a length
+    column on the dataset, and that column broke training before the first
+    optimizer step while the same configuration without it trained cleanly.
+    Padding waste is a throughput cost; a run that cannot start is a total
+    loss, so the working configuration is preferred until grouping is proven
+    on a GPU.
     """
     if not flash_attention:
         return {'padding_free': False, 'packing': False}

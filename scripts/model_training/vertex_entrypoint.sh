@@ -65,15 +65,6 @@ export HF_TOKEN
 python3 -m model_training.hf_fetch \
     --repo "$CODETETHER_HF_REPO" --output "$state/data"
 
-echo "=== stage: length column ==="
-# Published pairs predate the length column that group_by_length requires.
-for split in train validation; do
-    python3 -m model_training.add_length \
-        --pairs "$state/data/$split-pairs.jsonl" \
-        --output "$state/data/$split-len.jsonl"
-    mv "$state/data/$split-len.jsonl" "$state/data/$split-pairs.jsonl"
-done
-
 echo "=== stage: preflight ==="
 python3 -m model_training.gpu_probe | tee "$state/logs/gpu-probe.json"
 python3 -m model_training.mask_audit \

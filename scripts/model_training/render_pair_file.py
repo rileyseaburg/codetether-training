@@ -25,9 +25,6 @@ def build(
                     excluded += 1
                     continue
                 payload = dict(record)
-                # `group_by_length` batches similar sizes together, which
-                # requires a precomputed length column on the dataset.
-                payload['length'] = tokens
                 payload['metadata'] = value['metadata']
                 line = json.dumps(payload, sort_keys=True) + '\n'
                 encoded = line.encode()
