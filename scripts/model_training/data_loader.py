@@ -4,6 +4,8 @@ from pathlib import Path
 
 from datasets import Dataset, load_dataset
 
+from .constants import MAX_EVAL_SAMPLES, SEED
+
 
 SUPERVISION_COLUMNS = ('prompt', 'completion')
 """TRL infers prompt-completion mode from the column names alone.
@@ -25,7 +27,15 @@ def splits(train: Path, validation: Path) -> tuple[Dataset, Dataset]:
         data_files=str(validation),
         split='train',
     )
-    return _project(train_data), _project(validation_data)
+    return _project(train_data), _project(_subset(validation_data))
+
+
+def _subset(data: Dataset) -> Dataset:
+    """Bound the validation split so evaluation stays affordable."""
+    if len(data) <= MAX_EVAL_SAMPLES:
+        return data
+    shuffled = data.shuffle(seed=SEED)
+    return shuffled.select(range(MAX_EVAL_SAMPLES))
 
 
 def _project(data: Dataset) -> Dataset:

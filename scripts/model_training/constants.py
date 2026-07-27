@@ -17,6 +17,20 @@ WARMUP_STEPS = 60
 40,716 examples at an effective batch of 16, one epoch is roughly 2,500
 optimizer steps, so 60 steps approximates the previous 3 percent ratio.
 """
+ACCUMULATION_STEPS = 16
+EVAL_STEPS = 500
+"""Evaluation interval in optimizer steps.
+
+A full validation pass over 2,505 examples took 19 minutes on an A100
+80 GB. At a 250 step interval that is 3.2 hours of a 19 hour run spent
+evaluating, so the interval is widened and the subset bounded below.
+"""
+MAX_EVAL_SAMPLES = 400
+"""Cap validation examples per evaluation pass.
+
+A 400 example subset estimates loss closely enough to select checkpoints
+while cutting each pass from about 19 minutes to about 3.
+"""
 SEED = 42
 LORA_RANK = 16
 LORA_ALPHA = 32
