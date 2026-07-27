@@ -47,5 +47,6 @@ def build(output: Path, epochs: float, masked: bool = False) -> SFTConfig:
         data_seed=SEED,
         max_length=length,
         dataset_text_field=None if masked else 'text',
-        packing=False,
     )
+    # `packing` is supplied by throughput_settings above; repeating it here
+    # raised TypeError: got multiple values for keyword argument 'packing'.
