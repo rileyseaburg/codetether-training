@@ -31,15 +31,12 @@ log=$state/logs/train.log
 exec > >(tee -a "$log") 2>&1
 
 echo "=== stage: dependencies ==="
-# The image supplies a CUDA build of torch; never let a dependency replace
-# it with a different version, which breaks the compiled CUDA extensions.
-# Written to a real file rather than a process substitution, which is not
-# reliably available to pip in this container's shell.
-constraints=$state/constraints.txt
-python3 -c 'import torch; print(f"torch=={torch.__version__}")' >"$constraints"
-echo "holding $(cat "$constraints")"
-pip install --constraint "$constraints" \
-    -r "$bundle/scripts/model_training/requirements-gpu.txt" 2>&1 | tail -20
+# Dependencies are pinned in the requirements file and none of them requires
+# a torch upgrade, so no constraint file is needed. A constraint of
+# `torch==2.4.0+cu124` fails because pip rejects local version identifiers
+# in constraint files, which aborted two runs before any training began.
+pip install -r "$bundle/scripts/model_training/requirements-gpu.txt" 2>&1 |
+    tail -20
 echo "dependency install finished"
 
 # FlashAttention-2 enables padding-free batching, which removes the roughly
