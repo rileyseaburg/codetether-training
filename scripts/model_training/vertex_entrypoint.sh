@@ -10,11 +10,10 @@ workspace=/workspace
 bundle=$workspace/ct
 state=$workspace/codetether-state
 bucket=${CODETETHER_GCS_BUCKET:?CODETETHER_GCS_BUCKET is required}
-origin=${CODETETHER_GIT_REPO:-https://github.com/rileyseaburg/codetether-training}
 
-if [[ ! -d "$bundle/.git" ]]; then
-    git clone --depth 1 "$origin" "$bundle"
-fi
+# The container command already cloned the repository before invoking this
+# script, so cloning again would fail on a non-empty target directory.
+test -d "$bundle/scripts/model_training"
 
 export PYTHONPATH="$bundle/scripts"
 export CODETETHER_STATE="$state"

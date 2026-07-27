@@ -2,13 +2,12 @@
 
 from dataclasses import dataclass
 
+from .vertex_command import container_command
 from .vertex_scheduling import spot_scheduling
 
 
 BOOT_DISK_GB = 500
 """The 30B base model is 61 GB, plus checkpoints and a merged export."""
-
-ENTRYPOINT = '/workspace/ct/scripts/model_training/vertex_entrypoint.sh'
 
 
 @dataclass(frozen=True)
@@ -46,7 +45,7 @@ def _pool(request: JobRequest) -> dict[str, object]:
         },
         'containerSpec': {
             'imageUri': request.image,
-            'command': ['bash', ENTRYPOINT],
+            'command': container_command(),
             'env': [
                 {'name': key, 'value': value}
                 for key, value in sorted(request.environment.items())
