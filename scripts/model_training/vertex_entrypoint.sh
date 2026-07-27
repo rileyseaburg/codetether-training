@@ -33,10 +33,14 @@ exec > >(tee -a "$log") 2>&1
 echo "=== stage: dependencies ==="
 # The image supplies a CUDA build of torch; never let a dependency replace
 # it with a different version, which breaks the compiled CUDA extensions.
-torch_pin=$(python3 -c 'import torch; print(f"torch=={torch.__version__}")')
-echo "holding $torch_pin"
-pip install --constraint <(echo "$torch_pin") \
+# Written to a real file rather than a process substitution, which is not
+# reliably available to pip in this container's shell.
+constraints=$state/constraints.txt
+python3 -c 'import torch; print(f"torch=={torch.__version__}")' >"$constraints"
+echo "holding $(cat "$constraints")"
+pip install --constraint "$constraints" \
     -r "$bundle/scripts/model_training/requirements-gpu.txt" 2>&1 | tail -20
+echo "dependency install finished"
 
 # FlashAttention-2 enables padding-free batching, which removes the roughly
 # 59 percent padding waste measured at 8,192 tokens. It compiles against the
