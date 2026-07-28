@@ -1,11 +1,21 @@
-"""Generate from fixed prompts and measure agent-relevant behaviour."""
+"""Generate from fixed prompts and measure agent-relevant behaviour.
+
+Probes must supply a tool schema. Qwen's chat template only emits the
+tool-call instruction block when `tools` is passed, so scoring bare prompts
+reported `tool_call_rate: 0.0` at every checkpoint regardless of what the
+model had learned. The rate was unobservable rather than zero.
+"""
 
 import torch
 
 from .behaviour_prompts import PROMPTS
+from .probe_tools import TOOL_SCHEMA
 
 
 MAX_NEW_TOKENS = 128
+
+CALL_MARKERS = ('<tool_call>', '<function=')
+"""Qwen3.5 nests `<function=name>` inside `<tool_call>`."""
 
 
 def score(model: object, tokenizer: object) -> dict[str, object]:
@@ -16,7 +26,7 @@ def score(model: object, tokenizer: object) -> dict[str, object]:
         text = _generate(model, tokenizer, prompt)
         if not text.strip():
             empty += 1
-        if '<tool_call>' in text:
+        if any(marker in text for marker in CALL_MARKERS):
             tool_calls += 1
     total = len(PROMPTS)
     return {
@@ -30,6 +40,7 @@ def _generate(model: object, tokenizer: object, prompt: str) -> str:
     """Return the model's continuation for one chat prompt."""
     rendered = tokenizer.apply_chat_template(
         [{'role': 'user', 'content': prompt}],
+        tools=TOOL_SCHEMA,
         tokenize=False,
         add_generation_prompt=True,
     )
