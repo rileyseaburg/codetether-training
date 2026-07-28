@@ -9,6 +9,7 @@ model had learned. The rate was unobservable rather than zero.
 import torch
 
 from .behaviour_prompts import PROMPTS
+from .probe_tally import Tally
 from .probe_tools import TOOL_SCHEMA
 
 
@@ -19,21 +20,11 @@ CALL_MARKERS = ('<tool_call>', '<function=')
 
 
 def score(model: object, tokenizer: object) -> dict[str, object]:
-    """Return empty-response and tool-call rates for a small probe set."""
-    empty = 0
-    tool_calls = 0
+    """Return behaviour and schema-conformance rates for the probe set."""
+    tally = Tally()
     for prompt in PROMPTS:
-        text = _generate(model, tokenizer, prompt)
-        if not text.strip():
-            empty += 1
-        if any(marker in text for marker in CALL_MARKERS):
-            tool_calls += 1
-    total = len(PROMPTS)
-    return {
-        'probes': total,
-        'empty_rate': round(empty / total, 4),
-        'tool_call_rate': round(tool_calls / total, 4),
-    }
+        tally.record(_generate(model, tokenizer, prompt))
+    return tally.report(len(PROMPTS))
 
 
 def _generate(model: object, tokenizer: object, prompt: str) -> str:

@@ -23,14 +23,23 @@ def main() -> None:
     parser.add_argument('--output', type=Path)
     parser.add_argument('--baseline', action='store_true')
     values = parser.parse_args()
+    # A baseline run still needs the adapter directory to discover which base
+    # model to load, so resolve the base before discarding the adapter.
+    base = values.base or _base_of(values.adapter)
     adapter = None if values.baseline else values.adapter
-    model, tokenizer = load_for_eval(adapter, values.base)
+    model, tokenizer = load_for_eval(adapter, base)
     report = score(model, tokenizer)
     report['adapter'] = 'none' if values.baseline else str(values.adapter)
     text = json.dumps(report, indent=2, sort_keys=True)
     if values.output:
         values.output.write_text(text + '\n')
     print(text)
+
+
+def _base_of(adapter: Path) -> str:
+    """Return the base model recorded in an adapter configuration."""
+    config = json.loads((adapter / 'adapter_config.json').read_text())
+    return str(config['base_model_name_or_path'])
 
 
 if __name__ == '__main__':
