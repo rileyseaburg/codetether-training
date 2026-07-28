@@ -5,19 +5,19 @@ Pinned so a run can be reproduced exactly. Model identity lives in
 decides the size.
 """
 
-from .base_models import (
+from model_training.base_models import (
     BASE_MODEL,
     BASE_REVISION,
     SMALL_MODEL,
     SMALL_REVISION,
 )
-from .lora_params import (
+from model_training.lora_params import (
     LORA_ALPHA,
     LORA_DROPOUT,
     LORA_RANK,
     TARGET_MODULES,
 )
-from .schedule import (
+from model_training.schedule import (
     ACCUMULATION_STEPS,
     EVAL_STEPS,
     MAX_EVAL_SAMPLES,

@@ -6,8 +6,8 @@ A100 but needs 15.3 GB at Q4_K_M cannot be served, so larger bases are not
 offered regardless of training capacity.
 """
 
-from .constants import BASE_MODEL, MAX_LENGTH, SMALL_MODEL
-from .memory_budget import estimate
+from model_training.constants import BASE_MODEL, MAX_LENGTH, SMALL_MODEL
+from model_training.memory_budget import estimate
 
 
 TRAIN_9B_GB = 22.0
