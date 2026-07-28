@@ -69,7 +69,12 @@ python3 -m model_training.mask_audit \
 
 echo "=== stage: training ==="
 set +e
-python3 -u -m model_training.train \
+gpu_count=${CODETETHER_GPU_COUNT:-1}
+launcher=(python3 -u)
+if (( gpu_count > 1 )); then
+    launcher=(torchrun --standalone --nproc_per_node="$gpu_count")
+fi
+"${launcher[@]}" -m model_training.train \
     --train "$state/data/train-pairs.jsonl" \
     --validation "$state/data/validation-pairs.jsonl" \
     --output "$state/output" \

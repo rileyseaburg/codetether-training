@@ -8,11 +8,8 @@ from trl import SFTConfig
 
 from .attention import flash_available
 from .checkpoint_policy import CHECKPOINTING
-from .constants import (
-    ACCUMULATION_STEPS,
-    SEED,
-    WARMUP_STEPS,
-)
+from .constants import SEED, WARMUP_STEPS
+from .distributed import accumulation_steps
 from .precision import supports_bf16
 from .sequence_length import resolve
 from .throughput import settings as throughput_settings
@@ -28,7 +25,7 @@ def build(output: Path, epochs: float, masked: bool = False) -> SFTConfig:
         **throughput_settings(flash_available()),
         per_device_train_batch_size=1,
         per_device_eval_batch_size=1,
-        gradient_accumulation_steps=ACCUMULATION_STEPS,
+        gradient_accumulation_steps=accumulation_steps(),
         learning_rate=2e-4,
         lr_scheduler_type='cosine',
         warmup_steps=WARMUP_STEPS,
@@ -38,6 +35,7 @@ def build(output: Path, epochs: float, masked: bool = False) -> SFTConfig:
         tf32=False,
         gradient_checkpointing=True,
         gradient_checkpointing_kwargs={'use_reentrant': False},
+        ddp_find_unused_parameters=False,
         max_grad_norm=0.3,
         optim='paged_adamw_8bit',
         logging_steps=10,

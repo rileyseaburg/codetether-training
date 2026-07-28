@@ -13,6 +13,7 @@ from pathlib import Path
 from transformers import TrainerCallback
 
 from .behaviour_probe import score
+from .distributed import is_primary
 
 
 class BehaviourCallback(TrainerCallback):
@@ -31,7 +32,7 @@ class BehaviourCallback(TrainerCallback):
         **kwargs: object,
     ) -> None:
         """Append behaviour metrics for the current step."""
-        if model is None:
+        if model is None or not is_primary():
             return
         record = score(model, self.tokenizer)
         record['step'] = int(getattr(state, 'global_step', 0))
