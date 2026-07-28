@@ -12,7 +12,8 @@ set -euo pipefail
 state=${1:?state directory is required}
 bucket=${2:?bucket is required}
 interval=${CODETETHER_MIRROR_INTERVAL:-60}
-prefix="gs://$bucket/model-training/qwen3-coder-v4"
+run_id=${CODETETHER_RUN_ID:-qwen3-coder-v4}
+prefix="gs://$bucket/model-training/$run_id"
 
 while true; do
     gsutil -q -m rsync -r "$state/output" "$prefix/output" 2>/dev/null || true

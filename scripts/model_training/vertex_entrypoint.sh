@@ -11,6 +11,7 @@ workspace=/workspace
 bundle=$workspace/ct
 state=$workspace/codetether-state
 bucket=${CODETETHER_GCS_BUCKET:?CODETETHER_GCS_BUCKET is required}
+run_id=${CODETETHER_RUN_ID:-qwen3-coder-v4}
 
 # The container command already cloned the repository before invoking this
 # script, so cloning again would fail on a non-empty target directory.
@@ -84,7 +85,7 @@ status=$?
 
 echo "=== training exited with status $status ==="
 gsutil -q -m cp "$state/logs/"* \
-    "gs://$bucket/model-training/qwen3-coder-v4/logs/" 2>/dev/null || true
+    "gs://$bucket/model-training/$run_id/logs/" 2>/dev/null || true
 gsutil -q -m rsync -r "$state/output" \
-    "gs://$bucket/model-training/qwen3-coder-v4/output" 2>/dev/null || true
+    "gs://$bucket/model-training/$run_id/output" 2>/dev/null || true
 exit "$status"

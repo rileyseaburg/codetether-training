@@ -10,17 +10,9 @@ import os
 
 from pathlib import Path
 
+from .vertex_env import PASSTHROUGH_VARS, SECRET_VARS
 from .vertex_machine import gpu_count
 from .vertex_spec import JobRequest, build
-
-
-SECRET_VARS = ('VAULT_ADDR', 'VAULT_TOKEN')
-PASSTHROUGH_VARS = (
-    'CODETETHER_BASE_MODEL',
-    'CODETETHER_GPU_COUNT',
-    'CODETETHER_MAX_LENGTH',
-    'CODETETHER_MAX_TURNS',
-)
 
 
 def main() -> None:
