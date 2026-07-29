@@ -1,0 +1,37 @@
+{
+  "base_model": "Qwen/Qwen3.5-9B",
+  "base_revision": "c202236235762e1c871ad0ccb60c8ee5ba337b9a",
+  "leakage": {
+    "exact_overlap": 0,
+    "removed_train_duplicates": 7928,
+    "train_records": 192656,
+    "validation_records": 12281
+  },
+  "loss_masking": "prompt-completion; loss on assistant tokens only",
+  "short_primers": {
+    "records": 72,
+    "repeats": 12
+  },
+  "train": {
+    "bytes": 2411254892,
+    "excluded_over_limit": 13526,
+    "included": 200512,
+    "mean_tokens": 3316.41,
+    "path": "artifacts/model-training/pairs-v5/train-pairs.jsonl",
+    "sha256": "37dd3f34e7e7bea2f18fe5d9b5c0049c78606002f3a291072b77b395a81e80e2",
+    "source": "artifacts/model-training/corpus-v4/train.jsonl",
+    "tokens": 664979831,
+    "tool_schema_records": 105099
+  },
+  "validation": {
+    "bytes": 149507497,
+    "excluded_over_limit": 853,
+    "included": 12610,
+    "mean_tokens": 3287.0,
+    "path": "artifacts/model-training/pairs-v5/validation-pairs.jsonl",
+    "sha256": "9b0166a4a91df33e2e264c1645e413b6373e6fbe6d264845e079af3da3188c48",
+    "source": "artifacts/model-training/corpus-v4/validation.jsonl",
+    "tokens": 41449039,
+    "tool_schema_records": 6585
+  }
+}
